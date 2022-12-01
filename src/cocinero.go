@@ -6,10 +6,43 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
+const (
+	TO_PRODUCE = 10
+)
+
+var (
+	SHUSHI_TYPES = []string{"nigiris de salmó", "sashimis de tonyina", "makis de cranc"}
+)
+
+type Empty struct{}
+
+type Shushi struct {
+	ShushiType string
+}
+
 func failOnError(err error, msg string) {
 	if err != nil {
-		log.Fatalf("%s: %s", msg, err)
+		log.Panicf("%s: %s", msg, err)
 	}
+}
+
+func producir(ch *amqp.Channel, q amqp.Queue) {
+	// Sacar del canal que el canal esta vacio
+	for i := 0; i < TO_PRODUCE; i++ {
+		body := SHUSHI_TYPES[i%len(SHUSHI_TYPES)]
+		err := ch.Publish(
+			"",     // exchange
+			q.Name, // routing key
+			false,  // mandatory
+			false,  // immediate
+			amqp.Publishing{
+				ContentType: "text/plain",
+				Body:        []byte(body),
+			})
+		failOnError(err, "Failed to publish a message")
+		log.Printf(" [x] Sent %s\n", body)
+	}
+	// Avisar al canal de que el canal esta lleno
 }
 
 func main() {
@@ -31,25 +64,5 @@ func main() {
 	)
 	failOnError(err, "Failed to declare a queue")
 
-	msgs, err := ch.Consume(
-		q.Name, // queue
-		"",     // consumer
-		true,   // auto-ack
-		false,  // exclusive
-		false,  // no-local
-		false,  // no-wait
-		nil,    // args
-	)
-	failOnError(err, "Failed to register a consumer")
-
-	forever := make(chan bool)
-
-	go func() {
-		for d := range msgs {
-			log.Printf("Received a message: %s", d.Body)
-		}
-	}()
-
-	log.Printf(" [*] Waiting for messages. To exit press CTRL+C")
-	<-forever
+	producir(ch, q)
 }
