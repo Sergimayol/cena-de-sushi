@@ -69,7 +69,6 @@ func main() {
 			numshuhisAComer--
 			if numshuhisAComer == 0 {
 				done <- Empty{}
-				break
 			}
 			log.Printf("Me quedan %d para irme", numshuhisAComer)
 			time.Sleep(time.Duration(rand.Intn(2000)) * time.Millisecond)
