@@ -1,9 +1,7 @@
 package main
 
 import (
-	"bytes"
 	"log"
-	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -46,6 +44,8 @@ func main() {
 
 	done := make(chan bool, 1)
 
+	log.Printf("Hoy tengo hambre\nMe voy a llevar todo")
+
 	go func() {
 		for i := 0; i < q.Messages; i++ {
 
@@ -62,17 +62,15 @@ func main() {
 
 			for d := range msgs {
 				log.Printf("Received a message: %s", d.Body)
-				dotCount := bytes.Count(d.Body, []byte("."))
-				t := time.Duration(dotCount)
-				time.Sleep(t * time.Second)
 				log.Printf("Done")
+				done <- true
 				d.Ack(false)
 			}
 
 		}
-		done <- true
 	}()
 
 	log.Printf(" [*] Waiting for messages. To exit press CTRL+C")
 	<-done
+	log.Printf("Rompe el plato y se va")
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math/rand"
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -26,8 +27,31 @@ func failOnError(err error, msg string) {
 }
 
 func producir() {
+	numRanT1 := rand.Intn(TO_PRODUCE)
+	if numRanT1 != 0 {
+		log.Printf("Preparando %d de %s", numRanT1, SHUSHI_TYPES[0])
+	}
+	restantes := TO_PRODUCE - numRanT1
+	numRanT2 := rand.Intn(restantes)
+	if numRanT2 != 0 {
+		log.Printf("Preparando %d de %s", numRanT2, SHUSHI_TYPES[1])
+	}
+	restantes = restantes - numRanT2
+	if restantes != 0 {
+		log.Printf("Preparando %d de %s", restantes, SHUSHI_TYPES[2])
+	}
+
+	var shushi = ""
 	for i := 0; i < TO_PRODUCE; i++ {
-		shushi := SHUSHI_TYPES[i%len(SHUSHI_TYPES)]
+		if numRanT1 != 0 {
+			shushi = SHUSHI_TYPES[0]
+			numRanT1--
+		} else if numRanT2 != 0 {
+			shushi = SHUSHI_TYPES[1]
+			numRanT2--
+		} else {
+			shushi = SHUSHI_TYPES[2]
+		}
 		shushis[i] = fmt.Sprintf("Produciendo shushi: %s", shushi)
 		log.Printf(" [x] Sent %s\n", shushi)
 	}
@@ -47,12 +71,6 @@ func enviar(ch *amqp.Channel, ctx context.Context, q amqp.Queue, err error) {
 			})
 		failOnError(err, "Failed to publish a message")
 		log.Printf(" [x] Sent %s", shushis[i])
-	}
-}
-
-func failOnError(err error, msg string) {
-	if err != nil {
-		log.Panicf("%s: %s", msg, err)
 	}
 }
 

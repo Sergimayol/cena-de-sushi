@@ -1,8 +1,8 @@
 package main
 
 import (
-	"bytes"
 	"log"
+	"math/rand"
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -57,18 +57,28 @@ func main() {
 	)
 	failOnError(err, "Failed to register a consumer")
 
+	rand.Seed(time.Now().UnixNano())
+	numshuhisAComer := (rand.Intn(11) + 1)
+
+	log.Printf("Quiero comer %d piezas de shushi", numshuhisAComer)
+
 	done := make(chan Empty, 1)
 
 	go func() {
 		for d := range msgs {
-			log.Printf("Received a message: %s", d.Body)
-			dotCount := bytes.Count(d.Body, []byte("."))
-			t := time.Duration(dotCount)
-			time.Sleep(t * time.Second)
-			log.Printf("Done")
-			done <- Empty{}
+			numshuhisAComer--
+			if numshuhisAComer == 0 {
+				done <- Empty{}
+				break
+			}
+			log.Printf("Me quedan %d para irme", numshuhisAComer)
+			time.Sleep(time.Duration(rand.Intn(2000)) * time.Millisecond)
 			d.Ack(false)
+			restantes := (len(msgs))
+
+			log.Printf("Restantes: %d", restantes)
 		}
+
 	}()
 
 	log.Printf(" [*] Waiting for messages. To exit press CTRL+C")
