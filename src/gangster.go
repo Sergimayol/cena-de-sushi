@@ -2,6 +2,8 @@ package main
 
 import (
 	"log"
+	"math/rand"
+	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -9,6 +11,8 @@ import (
 const (
 	RABBITMQ_HOST = "amqp://guest:guest@localhost:5672/"
 )
+
+type Empty struct{}
 
 func failOnError(err error, msg string) {
 	if err != nil {
@@ -42,35 +46,36 @@ func main() {
 	)
 	failOnError(err, "Failed to set QoS")
 
-	done := make(chan bool, 1)
+	msgs, err := ch.Consume(
+		q.Name, // queue
+		"",     // consumer
+		false,  // auto-ack
+		false,  // exclusive
+		false,  // no-local
+		false,  // no-wait
+		nil,    // args
+	)
+	failOnError(err, "Failed to register a consumer")
 
-	log.Printf("Hoy tengo hambre\nMe voy a llevar todo")
+	rand.Seed(time.Now().UnixNano())
+	numshuhisAComer := q.Messages
+
+	log.Printf("Quiero comer %d piezas de shushi", numshuhisAComer)
+
+	done := make(chan Empty, 1)
 
 	go func() {
-		for i := 0; i < q.Messages; i++ {
-
-			msgs, err := ch.Consume(
-				q.Name, // queue
-				"",     // consumer
-				false,  // auto-ack
-				false,  // exclusive
-				false,  // no-local
-				false,  // no-wait
-				nil,    // args
-			)
-			failOnError(err, "Failed to register a consumer")
-
+		for i := numshuhisAComer; i > 0; i-- {
 			for d := range msgs {
-				log.Printf("Received a message: %s", d.Body)
-				log.Printf("Done")
-				done <- true
+				time.Sleep(time.Duration(rand.Intn(2000)) * time.Millisecond)
 				d.Ack(false)
+				log.Println(i)
 			}
-
 		}
+		done <- Empty{}
+
 	}()
 
 	log.Printf(" [*] Waiting for messages. To exit press CTRL+C")
 	<-done
-	log.Printf("Rompe el plato y se va")
 }
