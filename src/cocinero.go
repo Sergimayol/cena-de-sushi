@@ -93,6 +93,16 @@ func main() {
 	)
 	failOnError(err, "Failed to declare a queue")
 
+	// Create a queue for alerting N consumers that the producer is done
+	qAviso, err := ch.QueueDeclare(
+		"aviso", // name
+		true,    // durable
+		false,   // delete when unused
+		false,   // exclusive
+		false,   // no-wait
+		nil,     // arguments
+	)
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -100,4 +110,20 @@ func main() {
 
 	enviar(ch, ctx, q, err)
 
+	// Send enought messages to alert all consumers that the producer is done
+	for i := 0; i < TO_PRODUCE; i++ {
+		err = ch.PublishWithContext(ctx,
+			"",          // exchange
+			qAviso.Name, // routing key
+			false,       // mandatory
+			false,
+			amqp.Publishing{
+				DeliveryMode: amqp.Persistent,
+				ContentType:  "text/plain",
+				Body:         []byte("done"),
+			})
+		failOnError(err, "Failed to publish a message")
+	}
+
+	log.Printf(" [x] Sent %s", "done")
 }
