@@ -131,4 +131,5 @@ func main() {
 	enviar(ch, ctx, q, err)
 
 	avisar(ch, ctx, aviso, err)
+	// En vez de enviar N permisos enviar un int con N valor y que cada cliente modifique el valor
 }
