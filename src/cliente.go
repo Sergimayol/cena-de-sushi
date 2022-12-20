@@ -97,7 +97,7 @@ func main() {
 	failOnError(err, "Failed to open a channel")
 	defer ch.Close()
 
-	q := declararCola(ch, "task_queue")
+	q := declararCola(ch, "platos")
 	aviso := declararCola(ch, "avisos")
 
 	err = ch.Qos(
