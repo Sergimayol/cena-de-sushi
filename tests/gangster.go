@@ -1,8 +1,8 @@
 package main
 
 import (
+	"fmt"
 	"log"
-	"math/rand"
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -40,7 +40,7 @@ func main() {
 	failOnError(err, "Failed to declare a queue")
 
 	err = ch.Qos(
-		1,     // prefetch count
+		0,     // prefetch count
 		0,     // prefetch size
 		false, // global
 	)
@@ -56,6 +56,9 @@ func main() {
 		nil,    // args
 	)
 	failOnError(err, "Failed to register a consumer")
+
+	if len(msgs) > 0 {
+	}
 
 	aviso, err := ch.QueueDeclare(
 		"avisos", // name
@@ -78,58 +81,39 @@ func main() {
 	)
 	failOnError(err, "Failed to register a consumer")
 
-	gangster, err := ch.QueueDeclare(
-		"gangster", // name
-		true,       // durable
-		false,      // delete when unused
-		false,      // exclusive
-		false,      // no-wait
-		nil,        // arguments
-	)
-	failOnError(err, "Failed to declare a queue")
-
-	// The number of shuhis to eat is the length of the queue
-	numshuhisAComer := gangster.Messages
-
-	log.Printf("Quiero comer %d piezas de shushi", numshuhisAComer)
-
 	done := make(chan Empty, 1)
 
 	// Receive messages from the queue
 	go func() {
 		// Get the messages from the queue
-		for {
-			log.Printf("Esperando aviso")
-			ma := <-msgsAviso
-			if len(ma.Body) > 0 {
-				log.Printf("Aviso: %s", ma.Body)
-				ma.Ack(false)
-			}
-			// Send a message to the gangster queue
-			err = ch.Publish(
-				"",         // exchange
-				"gangster", // routing key
-				false,      // mandatory
-				false,      // immediate
-				amqp.Publishing{
-					ContentType: "text/plain",
-					Body:        []byte("Entra gangster"),
-				})
-			failOnError(err, "Failed to publish a message")
-
-			d := <-msgs
-			log.Printf("Received a message: %s", d.Body)
-			d.Ack(false)
-			numshuhisAComer--
-			rand.Seed(time.Now().UnixNano())
-			time.Sleep(time.Duration(rand.Intn(2000)) * time.Millisecond)
-			if numshuhisAComer == 0 {
-				done <- Empty{}
-				break
-			}
-
-			//TODO: Borrar la cola de mensajes
+		log.Printf("Esperando aviso")
+		ma := <-msgsAviso
+		if len(ma.Body) > 0 {
+			log.Printf("Aviso: %s", ma.Body)
+			ma.Ack(false)
 		}
+
+		err = ch.Publish(
+			"",         // exchange
+			aviso.Name, // routing key
+			false,      // mandatory
+			false,      // immediate
+			amqp.Publishing{
+				ContentType: "text/plain",
+				Body:        []byte(fmt.Sprintf("%d", 0)),
+			})
+		failOnError(err, "Failed to publish a message")
+
+		// Clean all the messages from the queue
+		log.Printf("Limpiando cola de tareas")
+		//_, err = ch.QueuePurge(q.Name, false)
+		_, err = ch.QueueDelete(q.Name, false, false, false)
+		failOnError(err, "Failed to purge the queue")
+
+		// Esperar 1 segundo
+		time.Sleep(1 * time.Second)
+		done <- Empty{}
+
 	}()
 
 	log.Printf(" [*] Waiting for messages. To exit press CTRL+C")

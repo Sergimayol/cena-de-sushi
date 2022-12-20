@@ -72,26 +72,27 @@ func enviar(ch *amqp.Channel, ctx context.Context, q amqp.Queue, err error) {
 		failOnError(err, "Failed to publish a message")
 		log.Printf(" [x] Sent %s", shushis[i])
 		// Esperar un tiempo aleatorio entre 1 y 2 segundos
-		rand.Seed(time.Now().UnixNano())
-		time.Sleep(time.Duration(rand.Intn(2000)) * time.Millisecond)
+		//rand.Seed(time.Now().UnixNano())
+		//time.Sleep(time.Duration(rand.Intn(2000)) * time.Millisecond)
 	}
 }
 
 func avisar(ch *amqp.Channel, ctx context.Context, aviso amqp.Queue, err error) {
-	for i := 0; i < TO_PRODUCE; i++ {
-		body := fmt.Sprintf("Aviso: %d", i)
-		err = ch.PublishWithContext(ctx,
-			"",         // exchange
-			aviso.Name, // routing key
-			false,      // mandatory
-			false,
-			amqp.Publishing{
-				DeliveryMode: amqp.Persistent,
-				ContentType:  "text/plain",
-				Body:         []byte(body),
-			})
-		failOnError(err, "Failed to publish a message")
-	}
+	//	for i := 0; i < TO_PRODUCE; i++ {
+	//body := fmt.Sprintf("Aviso: %d", i)
+	body := fmt.Sprintf("%d", TO_PRODUCE)
+	err = ch.PublishWithContext(ctx,
+		"",         // exchange
+		aviso.Name, // routing key
+		false,      // mandatory
+		false,
+		amqp.Publishing{
+			DeliveryMode: amqp.Persistent,
+			ContentType:  "text/plain",
+			Body:         []byte(body),
+		})
+	failOnError(err, "Failed to publish a message")
+	//}
 }
 
 func main() {

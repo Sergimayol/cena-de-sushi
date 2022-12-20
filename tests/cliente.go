@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"math/rand"
+	"strconv"
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -40,7 +42,7 @@ func main() {
 	failOnError(err, "Failed to declare a queue")
 
 	err = ch.Qos(
-		1,     // prefetch count
+		0,     // prefetch count
 		0,     // prefetch size
 		false, // global
 	)
@@ -78,34 +80,12 @@ func main() {
 	)
 	failOnError(err, "Failed to register a consumer")
 
-	gangster, err := ch.QueueDeclare(
-		"gangster", // name
-		true,       // durable
-		false,      // delete when unused
-		false,      // exclusive
-		false,      // no-wait
-		nil,        // arguments
-	)
-	failOnError(err, "Failed to declare a queue")
-
-	msgsGangster, err := ch.Consume(
-		gangster.Name, // queue
-		"",            // consumer
-		false,         // auto-ack
-		false,         // exclusive
-		false,         // no-local
-		false,         // no-wait
-		nil,           // args
-	)
-	failOnError(err, "Failed to register a consumer")
-
 	rand.Seed(time.Now().UnixNano())
 	numshuhisAComer := (rand.Intn(11) + 1)
 
 	log.Printf("Quiero comer %d piezas de shushi", numshuhisAComer)
 
 	done := make(chan Empty, 1)
-	waitGangster := make(chan bool, 1)
 
 	// Receive messages from the queue
 	go func() {
@@ -117,10 +97,22 @@ func main() {
 				log.Printf("Aviso: %s", ma.Body)
 				ma.Ack(false)
 			}
-			// Sino no hay mensanjes en la cola de gangster, se come un shushi
-			log.Printf("Hay %d mensajes en la cola de gangster", len(msgsGangster))
 
-			if len(msgsGangster) == 0 {
+			// Convert string to int
+			i, err := strconv.Atoi(string(ma.Body))
+			failOnError(err, "Failed to convert string to int")
+			if i > 0 {
+				i--
+				err = ch.Publish(
+					"",         // exchange
+					aviso.Name, // routing key
+					false,      // mandatory
+					false,      // immediate
+					amqp.Publishing{
+						ContentType: "text/plain",
+						Body:        []byte(fmt.Sprintf("%d", i)),
+					})
+				failOnError(err, "Failed to publish a message")
 				d := <-msgs
 				log.Printf("Received a message: %s", d.Body)
 				d.Ack(false)
@@ -131,9 +123,8 @@ func main() {
 					done <- Empty{}
 					break
 				}
-				waitGangster <- true
 			}
-			<-waitGangster
+
 		}
 	}()
 
