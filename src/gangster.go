@@ -57,23 +57,39 @@ func main() {
 	)
 	failOnError(err, "Failed to register a consumer")
 
+	// Create a queue for the producer to alert the consumers that it is done
+	qAviso, err := ch.QueueDeclare(
+		"aviso", // name
+		true,    // durable
+		false,   // delete when unused
+		false,   // exclusive
+		false,   // no-wait
+		nil,     // arguments
+	)
+	failOnError(err, "Failed to declare a queue")
+
 	rand.Seed(time.Now().UnixNano())
-	numshuhisAComer := q.Messages
+	numshuhisAComer := (rand.Intn(11) + 1)
 
 	log.Printf("Quiero comer %d piezas de shushi", numshuhisAComer)
 
 	done := make(chan Empty, 1)
 
+	// Receive messages from the queue
 	go func() {
-		for i := numshuhisAComer; i > 0; i-- {
-			for d := range msgs {
-				time.Sleep(time.Duration(rand.Intn(2000)) * time.Millisecond)
-				d.Ack(false)
-				log.Println(i)
-			}
-		}
-		done <- Empty{}
 
+		for d := range msgs {
+			numshuhisAComer--
+			if numshuhisAComer == 0 {
+				done <- Empty{}
+			}
+			log.Printf("Me quedan %d para irme", numshuhisAComer)
+			time.Sleep(time.Duration(rand.Intn(2000)) * time.Millisecond)
+			d.Ack(false)
+			restantes := (len(msgs))
+
+			log.Printf("Restantes: %d", restantes)
+		}
 	}()
 
 	log.Printf(" [*] Waiting for messages. To exit press CTRL+C")
