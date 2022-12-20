@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -81,19 +82,21 @@ func main() {
 	)
 	failOnError(err, "Failed to register a consumer")
 
+	fmt.Printf("Bon vespre vinc a sopar de shushi\nHo vull tot!\n")
+
 	done := make(chan Empty, 1)
 
 	// Receive messages from the queue
 	go func() {
 		// Get the messages from the queue
-		log.Printf("Esperando aviso")
 		ma := <-msgsAviso
-		if len(ma.Body) > 0 {
-			log.Printf("Aviso: %s", ma.Body)
-			ma.Ack(false)
-		}
+		ma.Ack(false)
 
-		err = ch.Publish(
+		i, err := strconv.Atoi(string(ma.Body))
+		failOnError(err, "Failed to convert string to int")
+		fmt.Printf("Agafa totes les peces. En total %d\n", i)
+
+		/*err = ch.Publish(
 			"",         // exchange
 			aviso.Name, // routing key
 			false,      // mandatory
@@ -102,20 +105,23 @@ func main() {
 				ContentType: "text/plain",
 				Body:        []byte(fmt.Sprintf("%d", 0)),
 			})
-		failOnError(err, "Failed to publish a message")
+		failOnError(err, "Failed to publish a message")*/
 
 		// Clean all the messages from the queue
-		log.Printf("Limpiando cola de tareas")
-		//_, err = ch.QueuePurge(q.Name, false)
+		_, err = ch.QueuePurge(q.Name, false)
 		_, err = ch.QueueDelete(q.Name, false, false, false)
 		failOnError(err, "Failed to purge the queue")
 
+		fmt.Println("Romp el plat")
+
 		// Esperar 1 segundo
 		time.Sleep(1 * time.Second)
+
+		fmt.Println("Men vaig")
+
 		done <- Empty{}
 
 	}()
 
-	log.Printf(" [*] Waiting for messages. To exit press CTRL+C")
 	<-done
 }
