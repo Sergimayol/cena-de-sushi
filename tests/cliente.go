@@ -83,7 +83,8 @@ func main() {
 	rand.Seed(time.Now().UnixNano())
 	numshuhisAComer := (rand.Intn(11) + 1)
 
-	log.Printf("Quiero comer %d piezas de shushi", numshuhisAComer)
+	fmt.Printf("Bon vespre vinc a sopar de shushi\nAvui menjaré %d peçes de shushi\n",
+		numshuhisAComer)
 
 	done := make(chan Empty, 1)
 
@@ -91,10 +92,9 @@ func main() {
 	go func() {
 		// Get the messages from the queue
 		for {
-			log.Printf("Esperando aviso")
+
 			ma := <-msgsAviso
 			if len(ma.Body) > 0 {
-				log.Printf("Aviso: %s", ma.Body)
 				ma.Ack(false)
 			}
 
@@ -114,11 +114,11 @@ func main() {
 					})
 				failOnError(err, "Failed to publish a message")
 				d := <-msgs
-				log.Printf("Received a message: %s", d.Body)
+				log.Printf("Ha agafat un %s\nAl plat hi ha %d peces", d.Body, i)
 				d.Ack(false)
 				numshuhisAComer--
-				rand.Seed(time.Now().UnixNano())
-				time.Sleep(time.Duration(rand.Intn(2000)) * time.Millisecond)
+				// Esperar un segundo
+				time.Sleep(1 * time.Second)
 				if numshuhisAComer == 0 {
 					done <- Empty{}
 					break
@@ -126,8 +126,9 @@ func main() {
 			}
 
 		}
+		fmt.Println("Ja estic ple. Bona nit")
 	}()
 
-	log.Printf(" [*] Waiting for messages. To exit press CTRL+C")
+	// Esperar a que acabe
 	<-done
 }
