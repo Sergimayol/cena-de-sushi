@@ -71,8 +71,8 @@ func enviar(ch *amqp.Channel, ctx context.Context, q amqp.Queue, err error) {
 			})
 		failOnError(err, "Failed to publish a message")
 		// Esperar un tiempo aleatorio entre 1 y 2 segundos
-		//rand.Seed(time.Now().UnixNano())
-		//time.Sleep(time.Duration(rand.Intn(2000)) * time.Millisecond)
+		rand.Seed(time.Now().UnixNano())
+		time.Sleep(time.Duration(rand.Intn(2000)) * time.Millisecond)
 	}
 }
 
@@ -89,6 +89,20 @@ func avisar(ch *amqp.Channel, ctx context.Context, aviso amqp.Queue, err error) 
 			Body:         []byte(body),
 		})
 	failOnError(err, "Failed to publish a message")
+	fmt.Print("Podeu menjar!\n")
+}
+
+func declararCola(ch *amqp.Channel, nombre string) amqp.Queue {
+	q, err := ch.QueueDeclare(
+		nombre, // name
+		true,   // durable
+		false,  // delete when unused
+		false,  // exclusive
+		false,  // no-wait
+		nil,    // arguments
+	)
+	failOnError(err, "Failed to declare a queue")
+	return q
 }
 
 func main() {
@@ -100,25 +114,8 @@ func main() {
 	failOnError(err, "Failed to open a channel")
 	defer ch.Close()
 
-	q, err := ch.QueueDeclare(
-		"task_queue", // name
-		true,         // durable
-		false,        // delete when unused
-		false,        // exclusive
-		false,        // no-wait
-		nil,          // arguments
-	)
-	failOnError(err, "Failed to declare a queue")
-
-	aviso, err := ch.QueueDeclare(
-		"avisos", // name
-		true,     // durable
-		false,    // delete when unused
-		false,    // exclusive
-		false,    // no-wait
-		nil,      // arguments
-	)
-	failOnError(err, "Failed to declare a queue")
+	q := declararCola(ch, "task_queue")
+	aviso := declararCola(ch, "avisos")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
