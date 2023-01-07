@@ -21,7 +21,7 @@ func failOnError(err error, msg string) {
 	}
 }
 
-func comerTodo(ch *amqp.Channel, q amqp.Queue, aviso amqp.Queue, msgsAviso <-chan amqp.Delivery, done chan<- Empty) {
+func comerTodo(ch *amqp.Channel, q amqp.Queue, aviso amqp.Queue, msgsAviso <-chan amqp.Delivery) {
 	// Get the messages from the queue
 	ma := <-msgsAviso
 	ma.Ack(false)
@@ -43,7 +43,6 @@ func comerTodo(ch *amqp.Channel, q amqp.Queue, aviso amqp.Queue, msgsAviso <-cha
 
 	fmt.Println("Men vaig")
 
-	done <- Empty{}
 }
 
 func declararCola(ch *amqp.Channel, nombre string) amqp.Queue {
@@ -97,9 +96,6 @@ func main() {
 
 	fmt.Printf("Bon vespre vinc a sopar de shushi\nHo vull tot!\n")
 
-	done := make(chan Empty, 1)
+	comerTodo(ch, q, aviso, msgsAviso /*, done*/)
 
-	go comerTodo(ch, q, aviso, msgsAviso, done)
-
-	<-done
 }

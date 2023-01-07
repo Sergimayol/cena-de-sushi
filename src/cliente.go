@@ -22,7 +22,7 @@ func failOnError(err error, msg string) {
 	}
 }
 
-func comer(ch *amqp.Channel, msgs <-chan amqp.Delivery, msgsAviso <-chan amqp.Delivery, done chan<- Empty, aviso amqp.Queue, numshuhisAComer int) {
+func comer(ch *amqp.Channel, msgs <-chan amqp.Delivery, msgsAviso <-chan amqp.Delivery, aviso amqp.Queue, numshuhisAComer int) {
 	for {
 
 		ma := <-msgsAviso
@@ -52,7 +52,6 @@ func comer(ch *amqp.Channel, msgs <-chan amqp.Delivery, msgsAviso <-chan amqp.De
 			// Esperar un segundo
 			time.Sleep(1 * time.Second)
 			if numshuhisAComer == 0 {
-				done <- Empty{}
 				break
 			}
 		}
@@ -116,10 +115,6 @@ func main() {
 	fmt.Printf("Bon vespre vinc a sopar de shushi\nAvui menjaré %d peçes de shushi\n",
 		numshuhisAComer)
 
-	done := make(chan Empty, 1)
+	comer(ch, msgs, msgsAviso /*done,*/, aviso, numshuhisAComer)
 
-	go comer(ch, msgs, msgsAviso, done, aviso, numshuhisAComer)
-
-	// Esperar a que acabe
-	<-done
 }
